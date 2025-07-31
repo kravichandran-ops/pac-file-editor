@@ -3,212 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAC File Editor</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <title>PAC File Editor - SWA Auth Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            min-height: 100vh;
+            background-color: #f0f4f8;
         }
         .container {
-            max-width: 90%;
-            margin: auto;
+            max-width: 960px;
         }
         textarea {
-            min-height: 500px;
+            min-height: 400px;
+            font-family: monospace;
+            resize: vertical;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center">
-    <div class="container bg-white p-8 rounded-xl shadow-lg my-10 w-full lg:w-4/5">
-        <header class="flex justify-between items-center mb-6 border-b pb-4">
-            <h1 class="text-3xl font-bold text-gray-800">PAC File Editor</h1>
-            <div id="auth-controls" class="flex space-x-2">
-                <button id="login-button" class="bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-colors">
-                    Login
-                </button>
-                <button id="logout-button" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-600 transition-colors hidden">
-                    Logout
-                </button>
-            </div>
-        </header>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white shadow-lg rounded-xl p-8 space-y-6 w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800">PAC File Editor - SWA Auth Test</h1>
 
-        <main id="editor-section" class="hidden">
+        <div id="auth-section" class="flex flex-col items-center space-y-4">
+            <p class="text-lg text-gray-600">Please sign in to continue.</p>
+            <!-- SWA's native Microsoft Entra ID login link -->
+            <a href="/.auth/login/aad" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Sign In with Microsoft Entra ID
+            </a>
+        </div>
+
+        <div id="editor-section" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <p class="text-lg text-gray-700">Logged in as: <span id="userName" class="font-semibold"></span></p>
+                <!-- SWA's native logout link -->
+                <a href="/.auth/logout" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75">
+                    Sign Out
+                </a>
+            </div>
+
             <div class="mb-4">
-                <label for="file-select" class="block text-gray-700 font-medium mb-2">PAC File Name</label>
-                <input type="text" id="file-input" value="proxy.pac" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="pacFileName" class="block text-gray-700 text-sm font-bold mb-2">PAC File Name:</label>
+                <input type="text" id="pacFileName" value="proxy.pac" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
 
-            <div class="mb-4 flex space-x-4">
-                <button id="load-button" class="flex-1 bg-green-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-600 transition-colors">
+            <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+
+            <div class="flex justify-end space-x-4">
+                <button id="loadButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
                     Load PAC File
                 </button>
-                <button id="save-button" class="flex-1 bg-indigo-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-600 transition-colors">
+                <button id="saveButton" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75">
                     Save PAC File
                 </button>
             </div>
 
-            <div class="mb-4">
-                <label for="pac-content" class="block text-gray-700 font-medium mb-2">File Content</label>
-                <textarea id="pac-content" class="w-full p-4 border rounded-lg font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-            </div>
-
-            <div id="status-message" class="mt-4 p-4 text-center text-sm rounded-lg"></div>
-        </main>
-
-        <div id="loading-spinner" class="hidden text-center">
-            <div class="animate-spin inline-block w-8 h-8 border-4 border-t-4 border-blue-500 rounded-full"></div>
-            <p class="mt-2 text-gray-600">Loading...</p>
+            <div id="messageBox" class="hidden p-4 rounded-lg text-center text-sm font-medium" role="alert"></div>
         </div>
     </div>
 
-    <!-- Okta Auth SDK -->
-    <script src="https://global.oktacdn.com/okta-auth-js/7.5.0/okta-auth-js.min.js"></script>
-    <!-- Azure Storage Blob SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@azure/storage-blob@12.18.0/dist/storage-blob.min.js"></script>
-
     <script>
-        // --- Okta and Azure Configuration (Update these values) ---
-        const oktaConfig = {
-            issuer: "https://trial-5559182-admin.okta.com/oauth2/default", // e.g., https://dev-12345678.okta.com/oauth2/default
-            clientId: "0oatrmih90Qjq0HF0697", // e.g., 0oanx1234567890abcdef
-            redirectUri: window.location.origin + "/callback"
-        };
-
-        const azureConfig = {
-            // Replace with your Azure Storage Account name
-            accountName: "mypacfilestorage",
-            // Hard-coded SAS token for demonstration.
-            // In production, this should be generated on a serverless function and fetched by the client.
-            sasToken: "sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2025-08-15T02:53:02Z&st=2025-07-31T18:38:02Z&spr=https&sig=jCJYMwx28%2Fj%2FXOQ2r2VrDj%2BXDgLwvG%2BWUzZpiaqsA5c%3D"
-        };
-
-        // --- DOM Elements ---
-        const loginBtn = document.getElementById('login-button');
-        const logoutBtn = document.getElementById('logout-button');
+        const authSection = document.getElementById('auth-section');
         const editorSection = document.getElementById('editor-section');
-        const loadBtn = document.getElementById('load-button');
-        const saveBtn = document.getElementById('save-button');
-        const pacContentTextArea = document.getElementById('pac-content');
-        const fileInput = document.getElementById('file-input');
-        const statusMessage = document.getElementById('status-message');
-        const loadingSpinner = document.getElementById('loading-spinner');
+        const userNameSpan = document.getElementById('userName');
+        const pacFileNameInput = document.getElementById('pacFileName');
+        const pacFileContentTextarea = document.getElementById('pacFileContent');
+        const loadButton = document.getElementById('loadButton');
+        const saveButton = document.getElementById('saveButton');
+        const messageBox = document.getElementById('messageBox');
 
-        // --- Okta Auth Client ---
-        const oktaAuth = new okta.Auth(oktaConfig);
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700');
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                messageBox.classList.add('bg-blue-100', 'text-blue-700');
+            }
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
 
-        // --- Event Handlers ---
-        loginBtn.addEventListener('click', () => oktaAuth.signInWithRedirect());
-        logoutBtn.addEventListener('click', () => oktaAuth.signOut());
-        loadBtn.addEventListener('click', loadPacFile);
-        saveBtn.addEventListener('click', savePacFile);
-
-        // --- Core Functions ---
-
-        async function handleAuth() {
+        async function checkAuthAndRenderUI() {
             try {
-                const isAuthenticated = await oktaAuth.isAuthenticated();
-                if (isAuthenticated) {
-                    await handleAuthenticatedState();
+                // Fetch user info from SWA's built-in authentication endpoint
+                const response = await fetch("/.auth/me");
+                const authData = await response.json();
+
+                if (authData && authData.clientPrincipal) {
+                    const user = authData.clientPrincipal;
+                    userNameSpan.textContent = user.userDetails || user.userId; // Prefer userDetails (email/name)
+                    authSection.classList.add('hidden');
+                    editorSection.classList.remove('hidden');
+                    showMessage(`Welcome, ${userNameSpan.textContent}!`, "info");
+                    // Optionally load default PAC file on login
+                    loadPacFile();
                 } else {
-                    await handleUnauthenticatedState();
+                    authSection.classList.remove('hidden');
+                    editorSection.classList.add('hidden');
+                    showMessage("Please sign in to continue.", "info");
                 }
             } catch (error) {
-                console.error("Authentication check failed:", error);
-                await handleUnauthenticatedState();
-            }
-        }
-
-        async function handleAuthenticatedState() {
-            loginBtn.classList.add('hidden');
-            logoutBtn.classList.remove('hidden');
-            editorSection.classList.remove('hidden');
-            showMessage('Authenticated successfully!', 'bg-green-100 text-green-700');
-        }
-
-        async function handleUnauthenticatedState() {
-            loginBtn.classList.remove('hidden');
-            logoutBtn.classList.add('hidden');
-            editorSection.classList.add('hidden');
-            showMessage('Please log in to access the PAC file editor.', 'bg-yellow-100 text-yellow-700');
-            // If the URL contains an Okta callback, process it
-            if (oktaAuth.isRedirect()) {
-                await oktaAuth.handleRedirect();
-            }
-        }
-
-        function showMessage(message, style) {
-            statusMessage.textContent = message;
-            statusMessage.className = `mt-4 p-4 text-center text-sm rounded-lg ${style}`;
-        }
-
-        function toggleLoading(isLoading) {
-            if (isLoading) {
-                loadingSpinner.classList.remove('hidden');
+                console.error("Error checking authentication:", error);
+                showMessage("Could not check authentication status. Please try signing in.", "error");
+                authSection.classList.remove('hidden');
                 editorSection.classList.add('hidden');
-            } else {
-                loadingSpinner.classList.add('hidden');
-                editorSection.classList.remove('hidden');
             }
         }
 
+        // Function to load PAC file from Azure Function
         async function loadPacFile() {
-            const fileName = fileInput.value;
+            const fileName = pacFileNameInput.value.trim();
             if (!fileName) {
-                showMessage('Please enter a file name.', 'bg-red-100 text-red-700');
+                showMessage("Please enter a PAC file name.", "error");
                 return;
             }
-            toggleLoading(true);
 
+            showMessage("Loading PAC file...", "info");
             try {
-                const blobServiceClient = new azblob.BlobServiceClient(`https://${azureConfig.accountName}.blob.core.windows.net?${azureConfig.sasToken}`);
-                const containerClient = blobServiceClient.getContainerClient('pacfiles');
-                const blobClient = containerClient.getBlobClient(fileName);
+                // This call will be proxied by SWA, which injects x-ms-client-principal
+                const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
 
-                const downloadBlockBlobResponse = await blobClient.downloadToBuffer();
-                const fileContent = new TextDecoder().decode(downloadBlockBlobResponse);
-                pacContentTextArea.value = fileContent;
-
-                showMessage(`Successfully loaded '${fileName}'.`, 'bg-green-100 text-green-700');
+                if (response.ok) {
+                    const content = await response.text();
+                    pacFileContentTextarea.value = content;
+                    showMessage(`PAC file '${fileName}' loaded successfully.`, "success");
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to load PAC file: ${response.status} - ${errorText}`, "error");
+                    console.error("Failed to load PAC file:", response.status, errorText);
+                }
             } catch (error) {
-                console.error('Error loading file:', error);
-                showMessage(`Error loading file: ${error.message}`, 'bg-red-100 text-red-700');
-            } finally {
-                toggleLoading(false);
+                console.error("Error loading PAC file:", error);
+                showMessage(`An error occurred while loading PAC file: ${error.message}`, "error");
             }
         }
 
+        // Function to save PAC file to Azure Function
         async function savePacFile() {
-            const fileName = fileInput.value;
-            const fileContent = pacContentTextArea.value;
-            if (!fileName || !fileContent) {
-                showMessage('Please enter a file name and content.', 'bg-red-100 text-red-700');
+            const fileName = pacFileNameInput.value.trim();
+            const content = pacFileContentTextarea.value;
+
+            if (!fileName) {
+                showMessage("Please enter a PAC file name.", "error");
                 return;
             }
-            toggleLoading(true);
 
+            showMessage("Saving PAC file...", "info");
             try {
-                const blobServiceClient = new azblob.BlobServiceClient(`https://${azureConfig.accountName}.blob.core.windows.net?${azureConfig.sasToken}`);
-                const containerClient = blobServiceClient.getContainerClient('pacfiles');
-                const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+                const response = await fetch(`/api/SavePacFile?name=${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: content
+                });
 
-                await blockBlobClient.upload(fileContent, fileContent.length);
-
-                showMessage(`Successfully saved '${fileName}'.`, 'bg-green-100 text-green-700');
+                if (response.ok) {
+                    const message = await response.text();
+                    showMessage(message, "success");
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to save PAC file: ${response.status} - ${errorText}`, "error");
+                    console.error("Failed to save PAC file:", response.status, errorText);
+                }
             } catch (error) {
-                console.error('Error saving file:', error);
-                showMessage(`Error saving file: ${error.message}`, 'bg-red-100 text-red-700');
-            } finally {
-                toggleLoading(false);
+                console.error("Error saving PAC file:", error);
+                showMessage(`An error occurred while saving PAC file: ${error.message}`, "error");
             }
         }
 
-        // --- Main Execution Block ---
-        window.onload = () => {
-            handleAuth();
-        };
+        // Event Listeners
+        loadButton.addEventListener('click', loadPacFile);
+        saveButton.addEventListener('click', savePacFile);
 
+        // Initial check on page load
+        checkAuthAndRenderUI();
     </script>
 </body>
 </html>
