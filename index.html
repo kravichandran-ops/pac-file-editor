@@ -68,7 +68,7 @@
             auth: {
                 clientId: "e4c5ff0d-faf5-45d1-ab96-1bbee457b2b4", // From Step 2.2
                 authority: "https://login.microsoftonline.com/e2bc7536-68e6-4af0-b6d4-72a547453091", // From Step 2.2
-                redirectUri: "https://kind-water-0a2dc7a0f.2.azurestaticapps.net/.auth/login/aad/callback" // This should match your SWA's redirect URI
+                redirectUri: window.location.origin + "/.auth/login/aad/callback" // This should match your SWA's redirect URI
             },
             cache: {
                 cacheLocation: "sessionStorage", // This configures where your cache will be stored
