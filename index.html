@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAC File Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .container {
+            max-width: 960px;
+        }
+        textarea {
+            min-height: 400px;
+            font-family: monospace;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white shadow-lg rounded-xl p-8 space-y-6 w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800">PAC File Editor</h1>
+
+        <div id="auth-section" class="flex flex-col items-center space-y-4">
+            <p id="auth-status" class="text-lg text-gray-600">Please sign in to continue.</p>
+            <button id="signInButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Sign In with Microsoft
+            </button>
+        </div>
+
+        <div id="editor-section" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <p class="text-lg text-gray-700">Logged in as: <span id="userName" class="font-semibold"></span></p>
+                <button id="signOutButton" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75">
+                    Sign Out
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label for="pacFileName" class="block text-gray-700 text-sm font-bold mb-2">PAC File Name:</label>
+                <input type="text" id="pacFileName" value="proxy.pac" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+
+            <div class="flex justify-end space-x-4">
+                <button id="loadButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+                    Load PAC File
+                </button>
+                <button id="saveButton" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75">
+                    Save PAC File
+                </button>
+            </div>
+
+            <div id="messageBox" class="hidden p-4 rounded-lg text-center text-sm font-medium" role="alert"></div>
+        </div>
+    </div>
+
+    <script>
+        // MSAL Configuration
+        // Replace with your Azure AD App Registration details
+        const msalConfig = {
+            auth: {
+                clientId: "YOUR_AZURE_AD_APP_CLIENT_ID", // From Step 2.2
+                authority: "https://login.microsoftonline.com/YOUR_AZURE_AD_TENANT_ID", // From Step 2.2
+                redirectUri: window.location.origin + "/.auth/login/aad/callback" // This should match your SWA's redirect URI
+            },
+            cache: {
+                cacheLocation: "sessionStorage", // This configures where your cache will be stored
+                storeAuthStateInCookie: false, // Set to true for IE 11
+            }
+        };
+
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        const loginRequest = {
+            scopes: ["User.Read"] // Request basic user profile
+        };
+
+        // DOM Elements
+        const authSection = document.getElementById('auth-section');
+        const editorSection = document.getElementById('editor-section');
+        const signInButton = document.getElementById('signInButton');
+        const signOutButton = document.getElementById('signOutButton');
+        const userNameSpan = document.getElementById('userName');
+        const authStatus = document.getElementById('auth-status');
+        const pacFileNameInput = document.getElementById('pacFileName');
+        const pacFileContentTextarea = document.getElementById('pacFileContent');
+        const loadButton = document.getElementById('loadButton');
+        const saveButton = document.getElementById('saveButton');
+        const messageBox = document.getElementById('messageBox');
+
+        // Function to display messages to the user
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700');
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                messageBox.classList.add('bg-blue-100', 'text-blue-700');
+            }
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
+        }
+
+        // Function to handle login
+        async function signIn() {
+            try {
+                await msalInstance.loginPopup(loginRequest);
+                checkAccountAndRenderUI();
+            } catch (error) {
+                console.error("Login failed:", error);
+                showMessage("Login failed. Please try again.", "error");
+            }
+        }
+
+        // Function to handle logout
+        async function signOut() {
+            try {
+                await msalInstance.logoutPopup();
+                editorSection.classList.add('hidden');
+                authSection.classList.remove('hidden');
+                authStatus.textContent = "Please sign in to continue.";
+                userNameSpan.textContent = "";
+                pacFileContentTextarea.value = "";
+                showMessage("Successfully signed out.", "success");
+            } catch (error) {
+                console.error("Logout failed:", error);
+                showMessage("Logout failed. Please try again.", "error");
+            }
+        }
+
+        // Function to get an access token for API calls
+        async function getAccessToken() {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length === 0) {
+                    throw new Error("No account found. Please sign in.");
+                }
+                const silentRequest = {
+                    scopes: ["User.Read"], // Request User.Read scope for the token
+                    account: accounts[0]
+                };
+                const response = await msalInstance.acquireTokenSilent(silentRequest);
+                return response.accessToken;
+            } catch (error) {
+                console.warn("Silent token acquisition failed. Acquiring token using popup...", error);
+                try {
+                    const response = await msalInstance.acquireTokenPopup(loginRequest);
+                    return response.accessToken;
+                } catch (popupError) {
+                    console.error("Popup token acquisition failed:", popupError);
+                    showMessage("Could not acquire access token. Please sign in again.", "error");
+                    return null;
+                }
+            }
+        }
+
+        // Function to load PAC file from Azure Function
+        async function loadPacFile() {
+            const fileName = pacFileNameInput.value.trim();
+            if (!fileName) {
+                showMessage("Please enter a PAC file name.", "error");
+                return;
+            }
+
+            showMessage("Loading PAC file...", "info");
+            try {
+                // Azure Static Web Apps automatically forwards the authentication token to linked APIs
+                const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
+
+                if (response.ok) {
+                    const content = await response.text();
+                    pacFileContentTextarea.value = content;
+                    showMessage(`PAC file '${fileName}' loaded successfully.`, "success");
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to load PAC file: ${response.status} - ${errorText}`, "error");
+                    console.error("Failed to load PAC file:", response.status, errorText);
+                }
+            } catch (error) {
+                console.error("Error loading PAC file:", error);
+                showMessage(`An error occurred while loading PAC file: ${error.message}`, "error");
+            }
+        }
+
+        // Function to save PAC file to Azure Function
+        async function savePacFile() {
+            const fileName = pacFileNameInput.value.trim();
+            const content = pacFileContentTextarea.value;
+
+            if (!fileName) {
+                showMessage("Please enter a PAC file name.", "error");
+                return;
+            }
+
+            showMessage("Saving PAC file...", "info");
+            try {
+                const response = await fetch(`/api/SavePacFile?name=${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain' // PAC files are plain text
+                    },
+                    body: content
+                });
+
+                if (response.ok) {
+                    const message = await response.text();
+                    showMessage(message, "success");
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to save PAC file: ${response.status} - ${errorText}`, "error");
+                    console.error("Failed to save PAC file:", response.status, errorText);
+                }
+            } catch (error) {
+                console.error("Error saving PAC file:", error);
+                showMessage(`An error occurred while saving PAC file: ${error.message}`, "error");
+            }
+        }
+
+        // Check for existing account and render UI
+        async function checkAccountAndRenderUI() {
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                const account = accounts[0];
+                userNameSpan.textContent = account.username;
+                authSection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                authStatus.textContent = "Authenticated.";
+                showMessage("Welcome, " + account.username + "!", "info");
+                // Optionally load default PAC file on login
+                loadPacFile();
+            } else {
+                authSection.classList.remove('hidden');
+                editorSection.classList.add('hidden');
+            }
+        }
+
+        // Event Listeners
+        signInButton.addEventListener('click', signIn);
+        signOutButton.addEventListener('click', signOut);
+        loadButton.addEventListener('click', loadPacFile);
+        saveButton.addEventListener('click', savePacFile);
+
+        // Initial check on page load
+        msalInstance.handleRedirectPromise().then(checkAccountAndRenderUI).catch(console.error);
+        checkAccountAndRenderUI(); // Also check immediately in case of direct access
+    </script>
+</body>
+</html>
