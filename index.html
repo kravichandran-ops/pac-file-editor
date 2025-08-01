@@ -48,7 +48,7 @@
       <div class="mb-4">
         <label for="pac-file-select" class="block text-gray-700 text-sm font-bold mb-2">Select PAC File:</label>
         <select id="pac-file-select" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="" disabled selected>Select PAC File</option>
+            <option selected>Select PAC File</option>
         </select>          
       </div>
 
@@ -128,7 +128,7 @@
         await msalInstance.logoutPopup();
         authSection.classList.remove('hidden');
         editorSection.classList.add('hidden');
-        headerRightSection.classList.remove('hidden');
+        headerRightSection.classList.add('hidden');
         userNameSpan.textContent = "";
         pacFileContentTextarea.value = "";
         showMessage("Successfully signed out.", "success");
@@ -146,7 +146,7 @@
         editorSection.classList.remove('hidden');
         headerRightSection.classList.remove('hidden');
         userNameSpan.textContent = account.username;
-        authStatus.textContent = "Authenticated.";
+        // authStatus.textContent = "Authenticated.";
         showMessage("Welcome, " + account.username + "!", "info");
         await listPacFiles();
       } else {
@@ -269,10 +269,6 @@
         deleteButton.disabled = false;
         saveButton.disabled = false;
       }
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        pacFileSelector.selectedIndex = 0; // Resets to first option
     });
 
     // Init
