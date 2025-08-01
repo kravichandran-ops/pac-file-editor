@@ -275,8 +275,7 @@
         }
 
         async function deletePacFile() {
-            const selector = document.getElementById("pacFileSelector");
-            const fileName = selector?.value?.trim();
+            const fileName = pacFileSelector?.value?.trim();
 
             if (!fileName) {
                 showMessage("Please select a PAC file to delete.", "error");
@@ -298,7 +297,7 @@
                     showMessage(`PAC file '${fileName}' deleted successfully.`, "success");
 
                     // Optional: remove the deleted file from the dropdown
-                    const optionToRemove = selector.querySelector(`option[value="${fileName}"]`);
+                    const optionToRemove = pacFileSelector.querySelector(`option[value="${fileName}"]`);
                     if (optionToRemove) optionToRemove.remove();
 
                     // Optionally clear textarea/input
@@ -337,7 +336,7 @@
         // Event Listeners
         signInButton.addEventListener('click', signIn);
         signOutButton.addEventListener('click', signOut);
-        deleteButton.addEventListener('click', loadPacFile);
+        deleteButton.addEventListener('click', deletePacFile);
         saveButton.addEventListener('click', savePacFile);
 
         // New: Load PAC file when dropdown selection changes
