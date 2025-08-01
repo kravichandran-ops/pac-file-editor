@@ -41,10 +41,10 @@
                 </button>
             </div>
 
-            <div class="mb-4">
+            <!-- <div class="mb-4">
                 <label for="pacFileName" class="block text-gray-700 text-sm font-bold mb-2">PAC File Name:</label>
                 <input type="text" id="pacFileName" value="proxy.pac" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
+            </div> -->
 
             <div class="mb-4">
                 <label for="pac-file-select" class="block text-gray-700 text-sm font-bold mb-2">Select PAC File:</label>
@@ -56,8 +56,8 @@
             <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
 
             <div class="flex justify-end space-x-4">
-                <button id="loadButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
-                    Load PAC File
+                <button id="deleteButton" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
+                    Delete PAC File
                 </button>
                 <button id="saveButton" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75">
                     Save PAC File
@@ -97,7 +97,7 @@
         const authStatus = document.getElementById('auth-status');
         const pacFileNameInput = document.getElementById('pacFileName');
         const pacFileContentTextarea = document.getElementById('pacFileContent');
-        const loadButton = document.getElementById('loadButton');
+        const deleteButton = document.getElementById('deleteButton');
         const saveButton = document.getElementById('saveButton');
         const messageBox = document.getElementById('messageBox');
         const pacFileSelector = document.getElementById('pac-file-select');
@@ -274,6 +274,46 @@
             }
         }
 
+        async function deletePacFile() {
+            const selector = document.getElementById("pacFileSelector");
+            const fileName = selector?.value?.trim();
+
+            if (!fileName) {
+                showMessage("Please select a PAC file to delete.", "error");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete the PAC file '${fileName}'? This action cannot be undone.`)) {
+                return;
+            }
+
+            showMessage("Deleting PAC file...", "info");
+
+            try {
+                const response = await fetch(`/api/DeletePacFile?name=${encodeURIComponent(fileName)}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage(`PAC file '${fileName}' deleted successfully.`, "success");
+
+                    // Optional: remove the deleted file from the dropdown
+                    const optionToRemove = selector.querySelector(`option[value="${fileName}"]`);
+                    if (optionToRemove) optionToRemove.remove();
+
+                    // Optionally clear textarea/input
+                    pacFileContentTextarea.value = "";
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to delete PAC file: ${response.status} - ${errorText}`, "error");
+                    console.error("Failed to delete PAC file:", response.status, errorText);
+                }
+            } catch (error) {
+                console.error("Error deleting PAC file:", error);
+                showMessage(`An error occurred while deleting PAC file: ${error.message}`, "error");
+            }
+        }
+
         // Check for existing account and render UI
         async function checkAccountAndRenderUI() {
             const accounts = msalInstance.getAllAccounts();
@@ -297,7 +337,7 @@
         // Event Listeners
         signInButton.addEventListener('click', signIn);
         signOutButton.addEventListener('click', signOut);
-        loadButton.addEventListener('click', loadPacFile);
+        deleteButton.addEventListener('click', loadPacFile);
         saveButton.addEventListener('click', savePacFile);
 
         // New: Load PAC file when dropdown selection changes
