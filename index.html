@@ -199,7 +199,7 @@
             }
         }
 
-        async function listPacFiles() {
+       async function listPacFiles() {
             showMessage("Fetching PAC file list...", "info");
 
             try {
@@ -209,7 +209,7 @@
                     const result = await response.json();
 
                     if (Array.isArray(result.files)) {
-                        const folders = result.files.filter(item => item.endsWith('/'));
+                        const folders = result.files;
 
                         showMessage(`Found ${folders.length} folder(s).`, "success");
                         console.log("Folders:", folders);
@@ -221,7 +221,7 @@
                         folders.forEach(folder => {
                             const option = document.createElement("option");
                             option.value = folder;
-                            option.textContent = folder.replace(/\/$/, ''); // remove trailing slash
+                            option.textContent = folder;
                             pacFileSelector.appendChild(option);
                         });
                     } else {
