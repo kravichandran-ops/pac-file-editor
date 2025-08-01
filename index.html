@@ -46,6 +46,13 @@
                 <input type="text" id="pacFileName" value="proxy.pac" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
 
+            <div class="mb-4">
+                <label for="pac-file-select" class="block text-gray-700 text-sm font-bold mb-2">Select PAC File:</label>
+                <select id="pac-file-select" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option>Select PAC File</option>
+                </select>
+            </div>
+
             <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
 
             <div class="flex justify-end space-x-4">
@@ -93,6 +100,7 @@
         const loadButton = document.getElementById('loadButton');
         const saveButton = document.getElementById('saveButton');
         const messageBox = document.getElementById('messageBox');
+        const pacFileSelector = document.getElementById('pac-file-select');
 
         // Function to display messages to the user
         function showMessage(message, type = 'info') {
@@ -191,6 +199,47 @@
             }
         }
 
+        async function listPacFiles() {
+            showMessage("Fetching PAC file list...", "info");
+
+            try {
+                const response = await fetch("/api/ListPacFile");
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    if (Array.isArray(result.files)) {
+                        const folders = result.files.filter(item => item.endsWith('/'));
+
+                        showMessage(`Found ${folders.length} folder(s).`, "success");
+                        console.log("Folders:", folders);
+
+                        // Clear existing options (except the first one)
+                        pacFileSelector.length = 1; // Keep the placeholder option
+
+                        // Populate the dropdown
+                        folders.forEach(folder => {
+                            const option = document.createElement("option");
+                            option.value = folder;
+                            option.textContent = folder.replace(/\/$/, ''); // remove trailing slash
+                            pacFileSelector.appendChild(option);
+                        });
+                    } else {
+                        showMessage("Invalid response format: 'files' key is missing or not an array.", "error");
+                        console.error("Unexpected result:", result);
+                    }
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`Failed to fetch PAC file list: ${response.status} - ${errorText}`, "error");
+                    console.error("Fetch error:", response.status, errorText);
+                }
+            } catch (error) {
+                console.error("Error fetching PAC file list:", error);
+                showMessage(`An error occurred while listing PAC files: ${error.message}`, "error");
+            }
+        }
+
+
         // Function to save PAC file to Azure Function
         async function savePacFile() {
             const fileName = pacFileNameInput.value.trim();
@@ -235,8 +284,10 @@
                 editorSection.classList.remove('hidden');
                 authStatus.textContent = "Authenticated.";
                 showMessage("Welcome, " + account.username + "!", "info");
+                
                 // Optionally load default PAC file on login
-                loadPacFile();
+                await loadPacFile();
+                await listPacFiles();
             } else {
                 authSection.classList.remove('hidden');
                 editorSection.classList.add('hidden');
