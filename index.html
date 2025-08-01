@@ -59,9 +59,9 @@
                 <button id="deleteButton" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
                     Delete PAC File
                 </button>
-                <button id="saveButton" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75">
-                    Save PAC File
-                </button>
+                <button id="saveButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+                    Update PAC File
+                  </button>
             </div>
 
             <div id="messageBox" class="hidden p-4 rounded-lg text-center text-sm font-medium" role="alert"></div>
@@ -95,7 +95,7 @@
         const signOutButton = document.getElementById('signOutButton');
         const userNameSpan = document.getElementById('userName');
         const authStatus = document.getElementById('auth-status');
-        const pacFileNameInput = document.getElementById('pacFileName');
+        // const pacFileNameInput = document.getElementById('pacFileName');
         const pacFileContentTextarea = document.getElementById('pacFileContent');
         const deleteButton = document.getElementById('deleteButton');
         const saveButton = document.getElementById('saveButton');
@@ -173,7 +173,7 @@
 
         // Function to load PAC file from Azure Function
         async function loadPacFile(fileNameOverride = null) {
-            const fileName = fileNameOverride || pacFileNameInput.value.trim();
+            const fileName = fileNameOverride;
             if (!fileName) {
                 showMessage("Please enter a PAC file name.", "error");
                 return;
@@ -186,7 +186,7 @@
                 if (response.ok) {
                     const content = await response.text();
                     pacFileContentTextarea.value = content;
-                    pacFileNameInput.value = fileName; // Update input field
+                    // pacFileNameInput.value = fileName; // Update input field
                     showMessage(`PAC file '${fileName}' loaded successfully.`, "success");
                 } else {
                     const errorText = await response.text();
@@ -242,7 +242,7 @@
 
         // Function to save PAC file to Azure Function
         async function savePacFile() {
-            const fileName = pacFileNameInput.value.trim();
+            const fileName = pacFileSelector.value.trim();
             const content = pacFileContentTextarea.value;
 
             if (!fileName) {
@@ -326,7 +326,7 @@
                 showMessage("Welcome, " + account.username + "!", "info");
                 
                 // Optionally load default PAC file on login
-                await loadPacFile();
+                //await loadPacFile();
                 await listPacFiles();
             } else {
                 authSection.classList.remove('hidden');
