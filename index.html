@@ -55,10 +55,10 @@
       <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
 
       <div class="flex justify-end space-x-4">
-        <button id="deleteButton" disabled class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
+        <button id="deleteButton" disabled class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 disabled:opacity-20">
           Delete PAC File
         </button>
-        <button id="saveButton" disabled class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75">
+        <button id="saveButton" disabled class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 disabled:opacity-20">
           Update PAC File
         </button>
       </div>
@@ -89,7 +89,6 @@
     const signInButton = document.getElementById('signInButton');
     const signOutButton = document.getElementById('signOutButton');
     const userNameSpan = document.getElementById('userName');
-    const headerUserNameSpan = document.getElementById('headerUserName');
     const authStatus = document.getElementById('auth-status');
     const pacFileContentTextarea = document.getElementById('pacFileContent');
     const deleteButton = document.getElementById('deleteButton');
@@ -131,7 +130,6 @@
         editorSection.classList.add('hidden');
         headerRightSection.classList.remove('hidden');
         userNameSpan.textContent = "";
-        headerUserNameSpan.textContent = "";
         pacFileContentTextarea.value = "";
         showMessage("Successfully signed out.", "success");
       } catch (error) {
@@ -146,14 +144,15 @@
         const account = accounts[0];
         authSection.classList.add('hidden');
         editorSection.classList.remove('hidden');
+        headerRightSection.classList.add('hidden');
         userNameSpan.textContent = account.username;
-        headerUserNameSpan.textContent = "Logged in as: " + account.username;
         authStatus.textContent = "Authenticated.";
         showMessage("Welcome, " + account.username + "!", "info");
         await listPacFiles();
       } else {
         authSection.classList.remove('hidden');
         editorSection.classList.add('hidden');
+        headerRightSection.classList.remove('hidden');
       }
     }
 
