@@ -172,8 +172,8 @@
         }
 
         // Function to load PAC file from Azure Function
-        async function loadPacFile() {
-            const fileName = pacFileNameInput.value.trim();
+        async function loadPacFile(fileNameOverride = null) {
+            const fileName = fileNameOverride || pacFileNameInput.value.trim();
             if (!fileName) {
                 showMessage("Please enter a PAC file name.", "error");
                 return;
@@ -181,12 +181,12 @@
 
             showMessage("Loading PAC file...", "info");
             try {
-                // Azure Static Web Apps automatically forwards the authentication token to linked APIs
                 const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
 
                 if (response.ok) {
                     const content = await response.text();
                     pacFileContentTextarea.value = content;
+                    pacFileNameInput.value = fileName; // Update input field
                     showMessage(`PAC file '${fileName}' loaded successfully.`, "success");
                 } else {
                     const errorText = await response.text();
@@ -199,7 +199,7 @@
             }
         }
 
-       async function listPacFiles() {
+        async function listPacFiles() {
             showMessage("Fetching PAC file list...", "info");
 
             try {
@@ -211,8 +211,8 @@
                     if (Array.isArray(result.files)) {
                         const folders = result.files;
 
-                        showMessage(`Found ${folders.length} folder(s).`, "success");
-                        console.log("Folders:", folders);
+                        showMessage(`Found ${folders.length} file(s).`, "success");
+                        console.log("Files:", folders);
 
                         // Clear existing options (except the first one)
                         pacFileSelector.length = 1; // Keep the placeholder option
@@ -299,6 +299,14 @@
         signOutButton.addEventListener('click', signOut);
         loadButton.addEventListener('click', loadPacFile);
         saveButton.addEventListener('click', savePacFile);
+
+        // New: Load PAC file when dropdown selection changes
+        pacFileSelector.addEventListener('change', () => {
+            const selectedFile = pacFileSelector.value;
+            if (selectedFile && selectedFile !== "Select PAC File") {
+                loadPacFile(selectedFile);
+            }
+        });
 
         // Initial check on page load
         msalInstance.handleRedirectPromise().then(checkAccountAndRenderUI).catch(console.error);
