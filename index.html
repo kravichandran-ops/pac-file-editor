@@ -275,6 +275,13 @@
       }
     });
 
+    window.addEventListener('DOMContentLoaded', () => {
+        // Reset textarea and disable buttons
+        pacFileContentTextarea.value = "";
+        deleteButton.disabled = true;
+        saveButton.disabled = true;
+    });
+
     // Init
     msalInstance.handleRedirectPromise().then(checkAccountAndRenderUI).catch(console.error);
     checkAccountAndRenderUI();
