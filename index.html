@@ -144,7 +144,7 @@
         const account = accounts[0];
         authSection.classList.add('hidden');
         editorSection.classList.remove('hidden');
-        headerRightSection.classList.add('hidden');
+        headerRightSection.classList.remove('hidden');
         userNameSpan.textContent = account.username;
         authStatus.textContent = "Authenticated.";
         showMessage("Welcome, " + account.username + "!", "info");
@@ -152,7 +152,7 @@
       } else {
         authSection.classList.remove('hidden');
         editorSection.classList.add('hidden');
-        headerRightSection.classList.remove('hidden');
+        headerRightSection.classList.add('hidden');
       }
     }
 
