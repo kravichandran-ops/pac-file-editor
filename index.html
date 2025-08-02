@@ -204,11 +204,7 @@
 
         async function signIn() {
             try {
-                // await msalInstance.loginPopup(loginRequest);
-
-                window.location.href = window.location.origin + '/.auth/login/aad';
-
-
+                await msalInstance.loginPopup(loginRequest);
                 checkAccountAndRenderUI();
             } catch (error) {
                 // headerRightSection.classList.remove('hidden');
