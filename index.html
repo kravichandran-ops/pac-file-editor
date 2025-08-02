@@ -1,291 +1,608 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PAC File Editor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f0f4f8;
-    }
-    textarea {
-      min-height: 400px;
-      font-family: monospace;
-      resize: vertical;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PAC File Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+
+        textarea {
+            min-height: 400px;
+            font-family: monospace;
+            resize: vertical;
+        }
+    </style>
 </head>
-<body class="pt-24 flex items-center justify-center min-h-screen p-4 bg-gray-100">
-  
-  <!-- Fixed Header Bar -->
-  <header class="w-full bg-gray-800 text-white shadow-md px-6 py-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
-    <div class="text-xl font-semibold">PAC File Editor</div>
-    <div id="header-right-section" class="hidden flex items-center space-x-4">
-      <span id="userName" class="text-sm md:inline"></span>
-      <button id="signOutButton" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out text-sm">
-        Sign Out
-      </button>
-    </div>
-  </header>
 
-  <!-- Main Content -->
-  <div class="container max-w-3xl bg-white shadow-lg rounded-xl p-8 space-y-6 w-full">
-    
-    <!-- Auth Section -->
-    <div id="auth-section" class="flex flex-col items-center space-y-4">
-      <p id="auth-status" class="text-lg text-gray-600">Please sign in to continue.</p>
-      <button id="signInButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
-        Sign In
-      </button>
+<body class="pt-20 items-center justify-center min-h-screen p-4 bg-gray-100">
+
+    <!-- Full Page Loader -->
+    <div id="fullPageLoader" class="fixed inset-0 bg-white bg-opacity-80 z-50 hidden flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-3 text-blue-600 text-base">Loading...</p>
+        </div>
     </div>
 
-    <!-- Editor Section -->
-    <div id="editor-section" class="hidden space-y-4">
-      <div class="mb-4">
-        <label for="pac-file-select" class="block text-gray-700 text-sm font-bold mb-2">Select PAC File:</label>
-        <select id="pac-file-select" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="" selected>Select PAC File</option>
-        </select>          
-      </div>
+    <!-- Toast Notification -->
+    <div style="z-index: 90;" id="toastContainer" class="fixed bottom-4 right-4 space-y-2"></div>
 
-      <textarea id="pacFileContent" class="shadow-inner appearance-none border rounded-lg w-full p-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+    <!-- Fixed Header Bar -->
+    <header class="w-full bg-gray-800 text-white shadow-md px-6 py-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
+        <div class="flex items-center space-x-4">
+            <div class="text-xl font-semibold">PAC File Editor</div>
+        </div>
+        <div id="header-right-section" class="flex items-center space-x-4">
+            <span id="userName" class="text-sm md:inline"></span>
+            <button id="signOutButton" class="flex items-center space-x-2 text-gray-100 hover:text-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3H6.75A2.25 2.25 0 004.5 5.25v13.5A2.25 2.25 0 006.75 21h6.75a2.25 2.25 0 002.25-2.25V15m3-3l-3-3m3 3l-3 3m3-3H9" />
+                </svg>
+                <span>Logout</span>
+            </button>
+        </div>
+    </header>
 
-      <div class="flex justify-end space-x-4">
-        <button id="deleteButton" disabled class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 disabled:opacity-20">
-          Delete PAC File
+    <div id="pacEditorContainer" class="p-2 w-full">
+        <!-- Add PAC File button with icon -->
+        <button onclick="addNewPacFileAction()"
+            class="flex items-center space-x-1 mb-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3.5 py-2.5 rounded-md shadow transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="font-bold">Add New PAC File</span>
         </button>
-        <button id="saveButton" disabled class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 disabled:opacity-20">
-          Update PAC File
-        </button>
-      </div>
 
-      <div id="messageBox" class="hidden p-4 rounded-lg text-center text-sm font-medium" role="alert"></div>
+        <div class="overflow-x-auto w-full">
+            <table class="w-full border border-gray-300 bg-white shadow rounded-md divide-y divide-gray-200">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm text-gray-700">PAC File</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-700"></th>
+                    </tr>
+                </thead>
+                <tbody id="pac-file-table-body" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
     </div>
-  </div>
 
-  <!-- Scripts -->
-  <script>
-    const msalConfig = {
-      auth: {
-        clientId: "5b3b1e17-61d5-4511-b90f-89a82f6634f9",
-        authority: "https://login.microsoftonline.com/e2bc7536-68e6-4af0-b6d4-72a547453091",
-        redirectUri: window.location.origin + "/.auth/login/aad/callback"
-      },
-      cache: {
-        cacheLocation: "sessionStorage",
-        storeAuthStateInCookie: false
-      }
-    };
 
-    const msalInstance = new msal.PublicClientApplication(msalConfig);
-    const loginRequest = { scopes: ["User.Read"] };
+    <!-- Overlay -->
+    <div id="sidePanelOverlay" class="fixed inset-0 bg-black bg-opacity-30 z-40 hidden"></div>
 
-    const authSection = document.getElementById('auth-section');
-    const editorSection = document.getElementById('editor-section');
-    const signInButton = document.getElementById('signInButton');
-    const signOutButton = document.getElementById('signOutButton');
-    const userNameSpan = document.getElementById('userName');
-    const authStatus = document.getElementById('auth-status');
-    const pacFileContentTextarea = document.getElementById('pacFileContent');
-    const deleteButton = document.getElementById('deleteButton');
-    const saveButton = document.getElementById('saveButton');
-    const messageBox = document.getElementById('messageBox');
-    const pacFileSelector = document.getElementById('pac-file-select');
-    const headerRightSection = document.getElementById('header-right-section');
+    <!-- Side Panel -->
+    <div id="sidePanel"
+        class="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-lg z-50 transform translate-x-full transition-transform duration-300">
+        <!-- Header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+            <h2 id="pac-side-panel-header" class="text-lg font-semibold text-gray-800">Add PAC File</h2>
+            <button id="closeSidePanel" class="text-gray-600 hover:text-gray-800 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
 
-    function showMessage(message, type = 'info') {
-      messageBox.textContent = message;
-      messageBox.className = 'p-4 rounded-lg text-center text-sm font-medium';
+        <!-- Content -->
+        <div class="p-6 space-y-4">
 
-      if (type === 'error') {
-        messageBox.classList.add('bg-red-100', 'text-red-700');
-      } else if (type === 'success') {
-        messageBox.classList.add('bg-green-100', 'text-green-700');
-      } else {
-        messageBox.classList.add('bg-blue-100', 'text-blue-700');
-      }
+            <!-- Loader Overlay -->
+            <div id="sidePanelLoader" class="absolute inset-0 bg-white bg-opacity-80 z-50 hidden flex items-center justify-center">
+                <div class="flex flex-col items-center">
+                    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-2 text-blue-600 text-sm" id="sidePanelLaderText">Loading...</p>
+                </div>
+            </div>
 
-      messageBox.classList.remove('hidden');
-      setTimeout(() => messageBox.classList.add('hidden'), 5000);
-    }
 
-    async function signIn() {
-      try {
-        await msalInstance.loginPopup(loginRequest);
+            <!-- Input: PAC File Name -->
+            <div>
+                <label for="pacFileName" class="block text-sm text-gray-700 font-bold">PAC File Name</label>
+                <input type="text" id="pacFileName"
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="example.pac">
+            </div>
+
+            <!-- Textarea: PAC File Content -->
+            <div>
+                <label for="pacFileContent" class="block text-sm text-gray-700 font-bold">PAC File Content</label>
+                <textarea id="pacFileContent" rows="10"
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="// Paste your PAC file content here..."></textarea>
+            </div>
+        </div>
+
+        <!-- Footer Buttons -->
+        <div class="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200">
+            <button id="cancelButton" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100">Cancel</button>
+            <button id="saveButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+        </div>
+    </div>
+
+    <div class="w-full flex justify-center" style="height: 60vh;">
+        <div class="container max-w-3xl p-8 space-y-6 w-full">
+            <!-- Auth Section -->
+            <div id="auth-section" class="flex flex-col items-center space-y-4" style="margin-top: 200px;">
+                <p id="auth-status" class="text-lg text-gray-600" style="font-size: 22px;">Welcome back! Please sign in to manage your PAC
+                    files.</p>
+                <button id="signInButton"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-12 rounded-md shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                    Sign In
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Scripts -->
+    <script>
+        const msalConfig = {
+            auth: {
+                clientId: "5b3b1e17-61d5-4511-b90f-89a82f6634f9",
+                authority: "https://login.microsoftonline.com/e2bc7536-68e6-4af0-b6d4-72a547453091",
+                redirectUri: window.location.origin + "/.auth/login/aad/callback"
+            },
+            cache: {
+                cacheLocation: "sessionStorage",
+                storeAuthStateInCookie: false
+            }
+        };
+
+        const pacFiles = [];
+        let isEditMode = false;
+
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        const loginRequest = { scopes: ["User.Read"] };
+
+        const pacEditorContainer = document.getElementById('pacEditorContainer');
+        const authSection = document.getElementById('auth-section');
+        const signInButton = document.getElementById('signInButton');
+        const signOutButton = document.getElementById('signOutButton');
+        const userNameSpan = document.getElementById('userName');
+        const authStatus = document.getElementById('auth-status');
+        const headerRightSection = document.getElementById('header-right-section');
+        const pacFileTableBody = document.getElementById('pac-file-table-body');
+        const sidePanel = document.getElementById("sidePanel");
+        const sidePanelOverlay = document.getElementById("sidePanelOverlay");
+        const openPanelBtn = document.getElementById("openSidePanel");
+        const closePanelBtn = document.getElementById("closeSidePanel");
+        const cancelBtn = document.getElementById("cancelButton");
+        const saveBtn = document.getElementById("saveButton");
+        const editButtons = document.getElementsByClassName("editButton");
+        const pacSidePanelHeader = document.getElementById("pac-side-panel-header");
+        const pacFileNameInput = document.getElementById('pacFileName');
+        const pacFileContentTextarea = document.getElementById('pacFileContent');
+
+        function openSidePanel() {
+            sidePanel.classList.remove("translate-x-full");
+            sidePanelOverlay.classList.remove("hidden");
+        }
+
+        function closeSidePanel() {
+            sidePanel.classList.add("translate-x-full");
+            sidePanelOverlay.classList.add("hidden");
+        }
+
+        function showSidePanelLoader(show) {
+            const loader = document.getElementById("sidePanelLoader");
+            loader.classList.toggle("hidden", !show);
+        }
+
+        async function signIn() {
+            try {
+                await msalInstance.loginPopup(loginRequest);
+                checkAccountAndRenderUI();
+            } catch (error) {
+                // headerRightSection.classList.remove('hidden');
+                // pacEditorContainer.classList.remove('hidden');
+                showToast("Login failed. Please try again.", "error");
+            }
+        }
+
+        async function signOut() {
+            try {
+                await msalInstance.logoutPopup();
+                authSection.classList.remove('hidden');
+                headerRightSection.classList.add('hidden');
+                pacEditorContainer.classList.add('hidden');
+                userNameSpan.textContent = "";
+                showToast("Successfully signed out.", "success");
+            } catch (error) {
+                showToast("Logout failed. Please try again.", "error");
+            }
+        }
+
+        async function checkAccountAndRenderUI() {
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                const account = accounts[0];
+                authSection.classList.add('hidden');
+                headerRightSection.classList.remove('hidden');
+                pacEditorContainer.classList.remove('hidden');
+                userNameSpan.textContent = account.username;
+                await listPacFiles();
+            } else {
+                authSection.classList.remove('hidden');
+                headerRightSection.classList.add('hidden');
+                pacEditorContainer.classList.add('hidden');
+            }
+        }
+
+        function showToast(message, type = "success") {
+            const toastContainer = document.getElementById("toastContainer");
+
+            const toast = document.createElement("div");
+            const baseStyles = "max-w-sm w-full px-4 py-3 rounded shadow-lg text-white flex items-center justify-between";
+            const successStyles = "bg-green-500";
+            const errorStyles = "bg-red-500";
+
+            toast.className = `${baseStyles} ${type === "success" ? successStyles : errorStyles}`;
+
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button class="ml-4 text-white focus:outline-none">&times;</button>
+            `;
+
+            // Remove on click
+            toast.querySelector("button").addEventListener("click", () => {
+                toast.remove();
+            });
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => toast.remove(), 3000);
+
+            toastContainer.appendChild(toast);
+        }
+
+        function toggleFullPageLoader(show) {
+            const loader = document.getElementById("fullPageLoader");
+            loader.classList.toggle("hidden", !show);
+        }
+
+        async function deletePacFile(fileName) {
+            if (!fileName) {
+                showToast("PAC file name not found.", "error");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete '${fileName}'?`)) return;
+
+            toggleFullPageLoader(true);
+
+            try {
+                const response = await fetch(`/api/DeletePacFile?name=${encodeURIComponent(fileName)}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    pacFileContentTextarea.value = "";
+                    await listPacFiles();
+
+                    showToast(`Deleted '${fileName}' successfully.`, "success");
+                } else {
+                    showToast(`Failed to delete PAC file: ${await response.text()}`, "error");
+                }
+                toggleFullPageLoader(false);
+            } catch (error) {
+                showToast("Error deleting PAC file: " + error.message, "error");
+                toggleFullPageLoader(false);
+            }
+        }
+
+        async function savePacFile(fileName, fileContent) {
+            showSidePanelLoader(true);
+            try {
+                const response = await fetch(`/api/SavePacFile?name=${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: fileContent
+                });
+
+                if (response.ok) {
+                    const msg = await response.text();
+                    showToast(`PAC file '${fileName}' saved successfully.`, "success");
+                    closeSidePanel();
+                    await listPacFiles();
+                } else {
+                    showToast(`Failed to save PAC file: ${await response.text()}`, "error");
+                }
+                showSidePanelLoader(false);
+            } catch (error) {
+                showToast(`Error saving PAC file: ${error.message}`, "error");
+                showSidePanelLoader(false);
+            }
+        }
+
+        function isValidPacContent(content) {
+            if (typeof content !== "string" || content.trim() === "") {
+                return false;
+            }
+
+            // Check for presence of required function
+            if (!/function\s+FindProxyForURL\s*\(/.test(content)) {
+                return false;
+            }
+
+            try {
+                // Attempt to parse as JS (does not execute!)
+                new Function(content);
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        function savePacFileAction() {
+            const pacFileName = pacFileNameInput.value.trim();
+            const pacFileContent = pacFileContentTextarea.value.trim();
+
+            if (!pacFileName || !pacFileContent) {
+                showToast("Please provide both PAC file name and content.", "error");
+                return;
+            }
+
+            if (!pacFileName.endsWith(".pac")) {
+                showToast("PAC file name must end with .pac", "error");
+                return;
+            }
+
+            if (pacFileName.length > 100) {
+                showToast("PAC file name cannot exceed 100 characters.", "error");
+                return;
+            }
+
+            if (!isValidPacContent(pacFileContent)) {
+                showToast("Invalid PAC file content. Ensure it contains a valid FindProxyForURL function.", "error");
+                return;
+            }
+
+            if (!isEditMode && pacFiles.includes(pacFileName)) {
+                showToast(`PAC file '${pacFileName}' already exists. Please choose a different name.`, "error");
+                return;
+            }
+
+            savePacFile(pacFileName, pacFileContent);
+        }
+
+        function addNewPacFileAction() {
+            // Set edit mode to false
+            isEditMode = false;
+
+            // Reset input fields
+            pacSidePanelHeader.textContent = "Add New PAC File";
+            pacFileContentTextarea.value = "";
+            pacFileNameInput.value = "";
+            pacFileNameInput.disabled = false;
+
+            // Open side panel
+            openSidePanel();
+        }
+
+        function editPacFileAction(fileName) {
+            // Set edit mode to false
+            isEditMode = true;
+
+            // Reset input fields
+            pacSidePanelHeader.textContent = `Update PAC File`;
+            pacFileContentTextarea.value = "";
+            pacFileNameInput.value = "";
+            pacFileNameInput.disabled = true;
+
+            showSidePanelLoader(true);
+
+            // Load the selected PAC file
+            loadPacFile(fileName);
+
+            // Open side panel
+            openSidePanel();
+        }
+
+        async function loadPacFile(fileName) {
+            try {
+                const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
+                if (response.ok) {
+                    pacFileNameInput.value = fileName;
+                    pacFileContentTextarea.value = await response.text();
+                    showSidePanelLoader(false);
+                } else {
+                    const errorText = await response.text();
+                    showToast(`Failed to load PAC file: ${errorText}`, "error");
+                    showSidePanelLoader(false);
+                }
+            } catch (error) {
+                showToast(`Error loading PAC file: ${error.message}`, "error");
+                showSidePanelLoader(false);
+            }
+        }
+
+        function addTableEmptyPlaceholder() {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                    <td colspan="2" class="px-6 py-4 text-sm text-gray-900">
+                        <div class="items-center text-center space-x-2 h-[500px] flex justify-center flex-col">
+                            <div>
+                                <svg class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m2 4H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v13a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div class="text-gray-600 mt-3">No PAC files found.</div>
+                            <div class="mt-2">
+                                <button onClick="addNewPacFileAction()"
+                                    class="flex items-center space-x-1 mb-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 rounded-md shadow transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span class="font-bold">Add New PAC File</span>
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                    `;
+            pacFileTableBody.appendChild(tr);
+
+            toggleFullPageLoader(false);
+        }
+
+        function addTableErrorPlaceholder() {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                    <td colspan="2" class="px-6 py-4 text-sm text-gray-900">
+                        <div class="items-center text-center space-x-2 h-[500px] flex justify-center flex-col">
+                            <div class="text-gray-600 mt-3">Error in loading PAC files.</div>
+                            <div class="mt-2">
+                                <button onClick="listPacFiles()"
+                                    class="flex items-center space-x-1 mb-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 rounded-md shadow transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <span class="font-bold">Reload</span>
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                    `;
+            pacFileTableBody.appendChild(tr);
+
+            toggleFullPageLoader(false);
+        }
+
+        async function listPacFiles() {
+            try {
+                toggleFullPageLoader(true);
+
+                // todo: remove this code
+                const response = await fetch("/api/ListPacFile");
+                const result = await response.json();
+
+                // const result = {
+                //     files: [
+                //         "example23.pac",
+                //         "example2.pac",
+                //         "example3.pac",
+                //         "example3.pac",
+                //         "example3.pac",
+                //         "example3.pac",
+                //         "example3.pac",
+                //     ]
+                // }
+
+                pacFiles.push(...result.files);
+
+                // Clear table
+                pacFileTableBody.innerHTML = "";
+
+                if (Array.isArray(result.files) && result.files.length === 0 || !Array.isArray(result.files)) {
+                    addTableEmptyPlaceholder();
+                    return;
+                }
+
+                if (Array.isArray(result.files)) {
+                    result.files.forEach(file => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        <div class="flex items-center space-x-2">
+                            <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m2 4H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v13a2 2 0 01-2 2z" />
+                            </svg>
+                            <span onclick="editPacFileAction('${file}')" class="hover:text-blue-600 hover:underline cursor-pointer">
+                              ${file}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex justify-end space-x-2">
+                            <button onclick="editPacFileAction('${file}')" class="flex items-center px-3 py-1 text-xs text-gray-700 border border-gray-300 hover:border-gray-400 rounded-md shadow-sm transition duration-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                    <path fill-rule="evenodd" d="M2 16.5A1.5 1.5 0 003.5 18h13a.5.5 0 000-1h-13a.5.5 0 01-.5-.5v-13a.5.5 0 00-1 0v13z" clip-rule="evenodd" />
+                                </svg>
+                                Edit
+                            </button>
+                            <button onclick="downloadPacFile('${file}')" class="flex items-center px-3 py-1 text-xs text-gray-700 border border-gray-300 hover:border-gray-400 rounded-md shadow-sm transition duration-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12 16l4-4h-3V4h-2v8H8l4 4zm-6 2h12v2H6v-2z" clip-rule="evenodd" />
+                                </svg>
+                                Download
+                            </button>
+                            <button onclick="deletePacFileAction('${file}')" class="flex items-center px-3 py-1 text-xs text-gray-700 border border-gray-300 hover:border-gray-400 rounded-md shadow-sm transition duration-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M6 8a1 1 0 011-1h6a1 1 0 011 1v8a2 2 0 01-2 2H8a2 2 0 01-2-2V8zm2 2a1 1 0 012 0v5a1 1 0 11-2 0v-5zm4 0a1 1 0 012 0v5a1 1 0 11-2 0v-5zM9 4a1 1 0 00-1 1v1h4V5a1 1 0 00-1-1H9zM7 5a3 3 0 016 0v1h2a1 1 0 110 2H5a1 1 0 110-2h2V5z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                `;
+                        pacFileTableBody.appendChild(tr);
+                    });
+
+                    toggleFullPageLoader(false);
+                } else {
+                    showToast("Error listing PAC files", "error");
+                    toggleFullPageLoader(false);
+                }
+            } catch (error) {
+                addTableErrorPlaceholder();
+                showToast("Error listing PAC files", "error");
+                toggleFullPageLoader(false);
+            }
+        }
+
+        function deletePacFileAction(fileName) {
+            deletePacFile(fileName);
+        }
+
+        async function downloadPacFile(fileName) {
+            toggleFullPageLoader(true);
+            try {
+                const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
+                if (response.ok) {
+                    const fileContent = await response.text();
+                    const blob = new Blob([fileContent], { type: 'application/x-ns-proxy-autoconfig' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName.endsWith('.pac') ? fileName : `${fileName}.pac`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    toggleFullPageLoader(false);
+                } else {
+                    const errorText = await response.text();
+                    showToast(`Failed to download PAC file: ${errorText}`, "error");
+                    toggleFullPageLoader(false);
+                }
+            } catch (error) {
+                showToast(`Error downloading PAC file: ${error.message}`, "error");
+                toggleFullPageLoader(false);
+            }
+        }
+
+
+        // Event Listeners
+        signInButton?.addEventListener('click', signIn);
+        signOutButton?.addEventListener('click', signOut);
+        closePanelBtn?.addEventListener("click", closeSidePanel);
+        cancelBtn?.addEventListener("click", closeSidePanel);
+        saveBtn?.addEventListener("click", savePacFileAction);
+
+        // Init
+        msalInstance.handleRedirectPromise().then(checkAccountAndRenderUI).catch(console.error);
         checkAccountAndRenderUI();
-      } catch (error) {
-        console.error("Login failed:", error);
-        showMessage("Login failed. Please try again.", "error");
-      }
-    }
 
-    async function signOut() {
-      try {
-        await msalInstance.logoutPopup();
-        authSection.classList.remove('hidden');
-        editorSection.classList.add('hidden');
-        headerRightSection.classList.add('hidden');
-        userNameSpan.textContent = "";
-        pacFileContentTextarea.value = "";
-        showMessage("Successfully signed out.", "success");
-      } catch (error) {
-        console.error("Logout failed:", error);
-        showMessage("Logout failed. Please try again.", "error");
-      }
-    }
+      //todo: remove below code
+        // listPacFiles();
 
-    async function checkAccountAndRenderUI() {
-      const accounts = msalInstance.getAllAccounts();
-      if (accounts.length > 0) {
-        const account = accounts[0];
-        authSection.classList.add('hidden');
-        editorSection.classList.remove('hidden');
-        headerRightSection.classList.remove('hidden');
-        userNameSpan.textContent = account.username;
-        // authStatus.textContent = "Authenticated.";
-        showMessage("Welcome, " + account.username + "!", "info");
-        await listPacFiles();
-      } else {
-        authSection.classList.remove('hidden');
-        editorSection.classList.add('hidden');
-        headerRightSection.classList.add('hidden');
-      }
-    }
-
-    async function listPacFiles() {
-      showMessage("Fetching PAC file list...", "info");
-      try {
-        const response = await fetch("/api/ListPacFile");
-        const result = await response.json();
-
-        if (Array.isArray(result.files)) {
-          pacFileSelector.length = 1;
-          result.files.forEach(file => {
-            const option = document.createElement("option");
-            option.value = file;
-            option.textContent = file;
-            pacFileSelector.appendChild(option);
-          });
-          showMessage(`Found ${result.files.length} file(s).`, "success");
-        } else {
-          throw new Error("Invalid response format.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        showMessage("Error listing PAC files: " + error.message, "error");
-      }
-    }
-
-    async function loadPacFile(fileName) {
-      if (!fileName) {
-        showMessage("Please select a PAC file.", "error");
-        return;
-      }
-
-      showMessage("Loading PAC file...", "info");
-      try {
-        const response = await fetch(`/api/GetPacFile?name=${encodeURIComponent(fileName)}`);
-        if (response.ok) {
-          pacFileContentTextarea.value = await response.text();
-          showMessage(`PAC file '${fileName}' loaded.`, "success");
-        } else {
-          const errorText = await response.text();
-          showMessage(`Failed to load PAC file: ${errorText}`, "error");
-        }
-      } catch (error) {
-        showMessage("Error loading PAC file: " + error.message, "error");
-      }
-    }
-
-    async function savePacFile() {
-      const fileName = pacFileSelector.value.trim();
-      const content = pacFileContentTextarea.value;
-
-      if (!fileName) {
-        showMessage("Please select a PAC file name.", "error");
-        return;
-      }
-
-      showMessage("Saving PAC file...", "info");
-      try {
-        const response = await fetch(`/api/SavePacFile?name=${encodeURIComponent(fileName)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: content
-        });
-
-        if (response.ok) {
-          const msg = await response.text();
-          showMessage(msg, "success");
-        } else {
-          showMessage(`Failed to save PAC file: ${await response.text()}`, "error");
-        }
-      } catch (error) {
-        showMessage("Error saving PAC file: " + error.message, "error");
-      }
-    }
-
-    async function deletePacFile() {
-      const fileName = pacFileSelector?.value?.trim();
-      if (!fileName) {
-        showMessage("Please select a PAC file to delete.", "error");
-        return;
-      }
-
-      if (!confirm(`Are you sure you want to delete '${fileName}'?`)) return;
-
-      showMessage("Deleting PAC file...", "info");
-
-      try {
-        const response = await fetch(`/api/DeletePacFile?name=${encodeURIComponent(fileName)}`, { method: 'DELETE' });
-
-        if (response.ok) {
-          pacFileContentTextarea.value = "";
-        //   const option = pacFileSelector.querySelector(`option[value="${fileName}"]`);
-        //   if (option) option.remove();
-          await listPacFiles();
-          showMessage(`Deleted '${fileName}' successfully.`, "success");
-        } else {
-          showMessage(`Failed to delete PAC file: ${await response.text()}`, "error");
-        }
-      } catch (error) {
-        showMessage("Error deleting PAC file: " + error.message, "error");
-      }
-    }
-
-    // Event Listeners
-    signInButton.addEventListener('click', signIn);
-    signOutButton?.addEventListener('click', signOut);
-    deleteButton.addEventListener('click', deletePacFile);
-    saveButton.addEventListener('click', savePacFile);
-    pacFileSelector.addEventListener('change', () => {
-      const file = pacFileSelector.value;
-      if (file && file !== "") {
-        loadPacFile(file);
-
-        deleteButton.disabled = false;
-        saveButton.disabled = false;
-      } else {
-        pacFileContentTextarea.value = "";
-        deleteButton.disabled = true;
-        saveButton.disabled = true;
-      }
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        // Reset textarea and disable buttons
-        pacFileContentTextarea.value = "";
-        deleteButton.disabled = true;
-        saveButton.disabled = true;
-    });
-
-    // Init
-    msalInstance.handleRedirectPromise().then(checkAccountAndRenderUI).catch(console.error);
-    checkAccountAndRenderUI();
-  </script>
+    </script>
 </body>
+
 </html>
