@@ -217,6 +217,8 @@
         async function signOut() {
             try {
                 await msalInstance.logoutPopup();
+                // window.location.href = "/.auth/logout?post_logout_redirect_uri=/";
+
                 authSection.classList.remove('hidden');
                 headerRightSection.classList.add('hidden');
                 pacEditorContainer.classList.add('hidden');
@@ -234,13 +236,23 @@
                 const data = await response.json();
 
                 if (data.clientPrincipal) {
-                console.log("User is logged in:", data.clientPrincipal);
-                return data.clientPrincipal; // Contains userDetails, userId, userRoles, etc.
+                    authSection.classList.add('hidden');
+                    headerRightSection.classList.remove('hidden');
+                    pacEditorContainer.classList.remove('hidden');
+                    // userNameSpan.textContent = account.username;
+                    await listPacFiles();
+                    console.log("User is logged in:", data.clientPrincipal);
                 } else {
-                console.log("User is not logged in");
-                return null;
+                    authSection.classList.remove('hidden');
+                    headerRightSection.classList.add('hidden');
+                    pacEditorContainer.classList.add('hidden');
+                    console.log("User is not logged in");
+                    return null;
                 }
             } catch (error) {
+                authSection.classList.remove('hidden');
+                headerRightSection.classList.add('hidden');
+                pacEditorContainer.classList.add('hidden');
                 console.error("Failed to fetch user info:", error);
                 return null;
             }
@@ -625,5 +637,4 @@
 
     </script>
 </body>
-
 </html>
