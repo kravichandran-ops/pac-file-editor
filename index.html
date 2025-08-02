@@ -218,7 +218,16 @@
             try {
                 // await msalInstance.logoutPopup();
                 // window.location.href = "/.auth/logout?post_logout_redirect_uri=/";
-                window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
+                // window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
+
+                const logoutUrl =
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/logout" +
+                    "?post_logout_redirect_uri=" +
+                    encodeURIComponent(`${window.location.origin}/.auth/logout?post_logout_redirect_uri=/`);
+
+                console.log(logoutUrl)
+
+                window.location.href = logoutUrl;
 
 
                 authSection.classList.remove('hidden');
