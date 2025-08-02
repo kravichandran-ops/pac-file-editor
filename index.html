@@ -137,7 +137,7 @@
         <div class="container max-w-3xl p-8 space-y-6 w-full">
             <!-- Auth Section -->
             <div id="auth-section" class="flex flex-col items-center space-y-4" style="margin-top: 200px;">
-                <p id="auth-status" class="text-lg text-gray-600" style="font-size: 22px;">Welcome! Please sign in to manage your PAC
+                <p id="auth-status" class="text-lg text-gray-600" style="font-size: 22px;">Welcome!! Please sign in to manage your PAC
                     files.</p>
                 <button id="signInButton"
                     class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-12 rounded-md shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
@@ -204,7 +204,8 @@
 
         async function signIn() {
             try {
-                await msalInstance.loginPopup(loginRequest);
+                window.location.href = '/.auth/login/aad?post_login_redirect_uri=/';
+                // await msalInstance.loginPopup(loginRequest);
                 checkAccountAndRenderUI();
             } catch (error) {
                 // headerRightSection.classList.remove('hidden');
@@ -227,19 +228,35 @@
         }
 
         async function checkAccountAndRenderUI() {
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
-                const account = accounts[0];
-                authSection.classList.add('hidden');
-                headerRightSection.classList.remove('hidden');
-                pacEditorContainer.classList.remove('hidden');
-                userNameSpan.textContent = account.username;
-                await listPacFiles();
-            } else {
-                authSection.classList.remove('hidden');
-                headerRightSection.classList.add('hidden');
-                pacEditorContainer.classList.add('hidden');
+            // const accounts = msalInstance.getAllAccounts();
+            try {
+                const response = await fetch("/.auth/me");
+                const data = await response.json();
+
+                if (data.clientPrincipal) {
+                console.log("User is logged in:", data.clientPrincipal);
+                return data.clientPrincipal; // Contains userDetails, userId, userRoles, etc.
+                } else {
+                console.log("User is not logged in");
+                return null;
+                }
+            } catch (error) {
+                console.error("Failed to fetch user info:", error);
+                return null;
             }
+
+            // if (accounts.length > 0) {
+            //     const account = accounts[0];
+            //     authSection.classList.add('hidden');
+            //     headerRightSection.classList.remove('hidden');
+            //     pacEditorContainer.classList.remove('hidden');
+            //     userNameSpan.textContent = account.username;
+            //     await listPacFiles();
+            // } else {
+            //     authSection.classList.remove('hidden');
+            //     headerRightSection.classList.add('hidden');
+            //     pacEditorContainer.classList.add('hidden');
+            // }
         }
 
         function showToast(message, type = "success") {
@@ -610,4 +627,3 @@
 </body>
 
 </html>
-
